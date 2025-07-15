@@ -20,10 +20,17 @@ DEFAULT_CONFIG = {
 CONFIG_FILE = "yt_download_config.json"
 HISTORY_FILE = "yt_download_history.json"
 
+def get_config_dir():
+    """Retorna o diretório de configuração do usuário"""
+    config_dir = Path.home() / ".yt-download"
+    config_dir.mkdir(exist_ok=True)
+    return config_dir
+
 class Config:
     def __init__(self):
-        self.config_path = Path.cwd() / CONFIG_FILE
-        self.history_path = Path.cwd() / HISTORY_FILE
+        config_dir = get_config_dir()
+        self.config_path = config_dir / CONFIG_FILE
+        self.history_path = config_dir / HISTORY_FILE
         self.settings = self.load_config()
     
     def load_config(self) -> Dict[str, Any]:

@@ -39,9 +39,16 @@ class CLI:
         else:
             rprint(f"\n[green]✅ Vídeo único detectado![/green]")
     
-    def get_mode_choice(self) -> str:
+    def get_mode_choice(self, config=None) -> str:
         rprint("\n[bold]Escolha o modo de download:[/bold]")
-        rprint("[cyan]1.[/cyan] Automático (MP3, melhor qualidade)")
+        
+        if config:
+            format_info = config.get('audio_format', 'mp3').upper()
+            quality_info = config.get('audio_quality', '320')
+            rprint(f"[cyan]1.[/cyan] Automático ({format_info}, {quality_info})")
+        else:
+            rprint("[cyan]1.[/cyan] Automático (MP3, melhor qualidade)")
+            
         rprint("[cyan]2.[/cyan] Manual (escolher formato e qualidade)")
         
         choice = Prompt.ask("Escolha", choices=["1", "2"], default="1")

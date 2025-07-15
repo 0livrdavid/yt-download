@@ -118,28 +118,47 @@ class YTDownloader:
             'fragment_retries': self.max_retries,
         }
         
-        # Adicionar thumbnail se configurado
+        # Adicionar thumbnail como capa embutida se configurado
         if self.config.get('download_thumbnails', False):
             ydl_opts['writethumbnail'] = True
-            ydl_opts['writeinfojson'] = True
+            ydl_opts['embedthumbnail'] = True
+            # Não baixar arquivos separados de info
         
         if format_type == "mp3":
+            postprocessors = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': quality if quality.isdigit() else '320',
+            }]
+            
+            # Adicionar thumbnail embutida se configurado
+            if self.config.get('download_thumbnails', False):
+                postprocessors.append({
+                    'key': 'EmbedThumbnail',
+                    'already_have_thumbnail': False,
+                })
+            
             ydl_opts.update({
                 'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': quality if quality.isdigit() else '320',
-                }]
+                'postprocessors': postprocessors
             })
         elif format_type in ["m4a", "ogg", "wav"]:
+            postprocessors = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': format_type,
+                'preferredquality': quality if quality.isdigit() and format_type != 'wav' else None,
+            }]
+            
+            # Adicionar thumbnail embutida se configurado (só para formatos que suportam)
+            if self.config.get('download_thumbnails', False) and format_type in ['m4a']:
+                postprocessors.append({
+                    'key': 'EmbedThumbnail',
+                    'already_have_thumbnail': False,
+                })
+            
             ydl_opts.update({
                 'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': format_type,
-                    'preferredquality': quality if quality.isdigit() and format_type != 'wav' else None,
-                }]
+                'postprocessors': postprocessors
             })
         else:
             ydl_opts.update({

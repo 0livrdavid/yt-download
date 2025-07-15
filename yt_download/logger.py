@@ -71,6 +71,8 @@ def get_logger(log_level: str = "INFO", log_file: Optional[str] = None) -> YTDow
     if _logger_instance is None:
         # Usar log file padrão se não especificado
         if log_file is None:
-            log_file = Path.cwd() / "yt_download.log"
+            config_dir = Path.home() / ".yt-download"
+            config_dir.mkdir(exist_ok=True)
+            log_file = config_dir / "yt_download.log"
         _logger_instance = YTDownloadLogger(log_level, str(log_file))
     return _logger_instance

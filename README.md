@@ -205,7 +205,7 @@ O arquivo `yt_download_config.json` é criado automaticamente com:
 |--------------|---------|-----------|
 | `audio_format` | mp3, m4a, ogg, wav | Formato de áudio padrão |
 | `audio_quality` | 128, 192, 256, 320 | Qualidade para MP3 (kbps) |
-| `download_thumbnails` | true/false | Baixar thumbnails dos vídeos |
+| `download_thumbnails` | true/false | 🖼️ Embute thumbnail como capa do áudio (MP3/M4A) |
 | `duplicate_action` | skip, overwrite, rename | Ação para arquivos duplicados |
 | **`parallel_downloads`** | **true/false** | **🚀 Downloads simultâneos em playlists** |
 | `max_parallel_downloads` | 1-5 | Número máximo de downloads simultâneos |

@@ -87,7 +87,7 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
         
         # Se não for modo automático, perguntar configurações
         if not auto_mode:
-            mode = cli.get_mode_choice()
+            mode = cli.get_mode_choice(config.settings)
             if mode == "manual":
                 format_type = cli.get_format_choice()
                 quality = cli.get_quality_choice(format_type)

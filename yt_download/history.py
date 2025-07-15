@@ -4,9 +4,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any
 
+def get_config_dir():
+    """Retorna o diretório de configuração do usuário"""
+    config_dir = Path.home() / ".yt-download"
+    config_dir.mkdir(exist_ok=True)
+    return config_dir
+
 class DownloadHistory:
     def __init__(self, history_file: str = "yt_download_history.json"):
-        self.history_file = Path.cwd() / history_file
+        config_dir = get_config_dir()
+        self.history_file = config_dir / history_file
         self.history = self.load_history()
     
     def load_history(self) -> List[Dict[str, Any]]:

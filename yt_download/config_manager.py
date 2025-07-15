@@ -61,10 +61,13 @@ class ConfigManager:
             )
             self.config.set('audio_quality', new_quality)
         
-        # Download de thumbnails
+        # Download de thumbnails (como capa embutida)
+        rprint("\n[bold yellow]🖼️ Thumbnails como Capa[/bold yellow]")
+        rprint("[dim]Embute a imagem do YouTube como capa no arquivo de áudio (MP3/M4A)[/dim]")
+        
         current_thumbnails = self.config.get('download_thumbnails')
         new_thumbnails = Confirm.ask(
-            f"Baixar thumbnails? [{'Sim' if current_thumbnails else 'Não'}]",
+            f"Embuter thumbnail como capa? [{'Sim' if current_thumbnails else 'Não'}]",
             default=current_thumbnails
         )
         self.config.set('download_thumbnails', new_thumbnails)
