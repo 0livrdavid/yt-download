@@ -16,22 +16,22 @@ def create_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  yb-download-mp3                          # Interactive mode
-  yb-download-mp3 --url "youtube_url"      # Quick download with default settings
-  yb-download-mp3 --history                # Show download history
-  yb-download-mp3 --stats                  # Show download statistics
-  yb-download-mp3 --reset                  # Clear download history
-  yb-download-mp3 --config                 # Configure application settings
-  yb-download-mp3 --check                  # Check system requirements
-  yb-download-mp3 --update                 # Check for updates and install
+  yt-download                          # Interactive mode
+  yt-download --url "youtube_url"      # Quick download with default settings
+  yt-download --history                # Show download history
+  yt-download --stats                  # Show download statistics
+  yt-download --reset                  # Clear download history
+  yt-download --config                 # Configure application settings
+  yt-download --check                  # Check system requirements
+  yt-download --update                 # Check for updates and install
         """
     )
     
     parser.add_argument('--url', '-u', type=str, help='YouTube URL to download')
     parser.add_argument('--format', '-f', choices=['mp3', 'm4a', 'ogg', 'wav'], 
-                       default='mp3', help='Audio format (default: mp3)')
-    parser.add_argument('--quality', '-q', type=str, default='320',
-                       help='Audio quality (default: 320 for mp3, best for others)')
+                       default=None, help='Audio format (default: from config)')
+    parser.add_argument('--quality', '-q', type=str, default=None,
+                       help='Audio quality (default: from config)')
     parser.add_argument('--auto', '-a', action='store_true',
                        help='Auto mode: use best quality MP3')
     parser.add_argument('--history', action='store_true',
@@ -46,11 +46,16 @@ Examples:
                        help='Check system requirements')
     parser.add_argument('--update', action='store_true',
                        help='Check for updates and install if available')
-    parser.add_argument('--version', '-v', action='version', version='1.0.0')
+    parser.add_argument('--version', '-v', action='version', version='1.0.1')
     
     return parser
 
-def handle_download(cli, config, url, format_type="mp3", quality="320", auto_mode=False):
+def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=False):
+    # Usar configuração padrão se não especificado
+    if format_type is None:
+        format_type = config.get('audio_format', 'mp3')
+    if quality is None:
+        quality = config.get('audio_quality', '320')
     try:
         # Inicializar downloader com configuração
         downloader = YTDownloader(progress_callback=cli.show_progress, config=config.settings)
@@ -129,7 +134,7 @@ def interactive_mode():
     cli = CLI()
     config = Config()
     
-    cli.show_welcome()
+    cli.show_welcome(config.settings)
     
     try:
         while True:
@@ -248,7 +253,8 @@ def main():
         if args.url:
             format_type = args.format
             quality = args.quality
-            auto_mode = args.auto
+            # Se formato ou qualidade foram especificados, usar modo automático
+            auto_mode = args.auto or args.format is not None or args.quality is not None
             
             success = handle_download(cli, config, args.url, format_type, quality, auto_mode)
             sys.exit(0 if success else 1)

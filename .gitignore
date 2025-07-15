@@ -176,7 +176,7 @@ yt_download.log
 
 # Downloaded content folders
 */
-!yt_download_mp3/
+!yt_download/
 !.github/
 
 # OS generated files

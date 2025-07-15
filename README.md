@@ -1,6 +1,6 @@
-# 🎵 YouTube to MP3 Downloader
+# 🎵 YouTube Downloader
 
-Uma ferramenta CLI **profissional** e **robusta** para baixar vídeos e playlists do YouTube como arquivos MP3 de alta qualidade, com recursos avançados de retry, downloads paralelos, auto-updater e muito mais.
+Uma ferramenta CLI **profissional** e **robusta** para baixar vídeos e playlists do YouTube em múltiplos formatos de áudio de alta qualidade (MP3, M4A, OGG, WAV), com recursos avançados de retry, downloads paralelos, auto-updater e muito mais.
 
 ![Python](https://img.shields.io/badge/python-3.7+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
@@ -86,57 +86,71 @@ pip install -e .
 
 ## 🚀 Como Usar
 
+### ⚡ Início Rápido - Downloads Ultra-Rápidos
+
+**Para playlists 3x mais rápidas, configure primeiro:**
+
+```bash
+# 1. Configure uma vez (recomendado)
+yt-download --config
+# Ative "Downloads Paralelos" = Sim
+
+# 2. Use normalmente
+yt-download
+```
+
 ### Modo Interativo (Recomendado)
 
 ```bash
-yb-download-mp3
+yt-download
 ```
 
 O programa irá:
-1. Solicitar o link do YouTube
-2. Detectar automaticamente se é vídeo ou playlist
-3. Perguntar o modo desejado (Automático ou Manual)
-4. No modo manual, permitir escolher formato e qualidade
-5. Realizar o download na pasta atual
+1. **Mostrar sua configuração atual** (formato, qualidade, download paralelo)
+2. Solicitar o link do YouTube
+3. Detectar automaticamente se é vídeo ou playlist
+4. Perguntar o modo desejado (Automático ou Manual)
+5. No modo manual, permitir escolher formato e qualidade
+6. Realizar o download na pasta atual
 
 ### Linha de Comando Direta
 
 ```bash
 # Download automático (MP3, melhor qualidade)
-yb-download-mp3 --url "https://youtube.com/watch?v=..." --auto
+yt-download --url "https://youtube.com/watch?v=..." --auto
 
 # Download com formato específico
-yb-download-mp3 --url "..." --format mp3 --quality 192
+yt-download --url "..." --format mp3 --quality 192
 
 # Ver histórico com tamanhos reais
-yb-download-mp3 --history
+yt-download --history
 
 # Ver estatísticas detalhadas
-yb-download-mp3 --stats
+yt-download --stats
 
 # Verificar se sistema está pronto (FFmpeg + YouTube)
-yb-download-mp3 --check
+yt-download --check
 
 # Configurar aplicação interativamente
-yb-download-mp3 --config
+yt-download --config
 
 # Verificar atualizações e instalar
-yb-download-mp3 --update
+yt-download --update
 
 # Limpar histórico de downloads
-yb-download-mp3 --reset
+yt-download --reset
 ```
 
 ## 📋 Exemplos de Uso
 
 ### Vídeo Único - Modo Automático
 ```bash
-yb-download-mp3 --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --auto
+yt-download --url "https://www.youtube.com/watch?v=dQw4w9WgXcQ" --auto
 ```
 
 ### Playlist Completa - Modo Manual
 ```bash
-yb-download-mp3
+yt-download
 # Cole: https://www.youtube.com/playlist?list=...
 # Escolha: 2 (Manual)
 # Formato: 1 (MP3)
@@ -145,7 +159,7 @@ yb-download-mp3
 
 ### Verificar Histórico
 ```bash
-yb-download-mp3 --history
+yt-download --history
 ```
 
 ## 📁 Estrutura dos Arquivos
@@ -164,7 +178,7 @@ pasta-atual/
 ## ⚙️ Configuração
 
 ### Interface Interativa
-Use `yb-download-mp3 --config` para configurar via interface gráfica interativa.
+Use `yt-download --config` para configurar via interface gráfica interativa.
 
 ### Arquivo de Configuração
 O arquivo `yt_download_config.json` é criado automaticamente com:
@@ -193,9 +207,44 @@ O arquivo `yt_download_config.json` é criado automaticamente com:
 | `audio_quality` | 128, 192, 256, 320 | Qualidade para MP3 (kbps) |
 | `download_thumbnails` | true/false | Baixar thumbnails dos vídeos |
 | `duplicate_action` | skip, overwrite, rename | Ação para arquivos duplicados |
-| `parallel_downloads` | true/false | Downloads paralelos em playlists |
+| **`parallel_downloads`** | **true/false** | **🚀 Downloads simultâneos em playlists** |
+| `max_parallel_downloads` | 1-5 | Número máximo de downloads simultâneos |
 | `max_retries` | 1-10 | Tentativas em caso de falha |
 | `log_level` | DEBUG, INFO, WARNING, ERROR | Nível de logging |
+
+### 🚀 Download Paralelo (Recomendado)
+
+Para **acelerar significativamente** o download de playlists, ative o download paralelo:
+
+```bash
+# Edite o arquivo yt_download_config.json e altere:
+"parallel_downloads": true,
+"max_parallel_downloads": 3
+
+# Ou use a interface interativa:
+yt-download --config
+```
+
+**Performance com Download Paralelo:**
+- ✅ **Playlist com 10 músicas**: ~2-3 minutos (vs 8-10 minutos sequencial)
+- ✅ **Múltiplos downloads simultâneos**: Até 3x mais rápido
+- ✅ **Uso otimizado da banda**: Aproveita melhor sua conexão
+
+### 💡 Dicas de Performance
+
+1. **Ative o Download Paralelo**: Para playlists, é a diferença entre 3 minutos e 10 minutos
+2. **Use 3 downloads simultâneos**: Configuração ideal para a maioria das conexões
+3. **Evite mais de 5 simultâneos**: Pode sobrecarregar o YouTube e sua conexão
+4. **Monitore no modo verboso**: Use `--verbose` para ver o progresso detalhado
+
+```bash
+# Configuração otimizada recomendada:
+{
+  "parallel_downloads": true,
+  "max_parallel_downloads": 3,
+  "max_retries": 3
+}
+```
 
 ## 📊 Recursos do Histórico
 
@@ -217,13 +266,13 @@ O arquivo `yt_download_config.json` é criado automaticamente com:
 ### Comandos de Histórico
 ```bash
 # Ver últimos 10 downloads com detalhes
-yb-download-mp3 --history
+yt-download --history
 
 # Ver estatísticas completas
-yb-download-mp3 --stats
+yt-download --stats
 
 # Limpar todo o histórico
-yb-download-mp3 --reset
+yt-download --reset
 ```
 
 ## 🔧 Formatos Suportados
@@ -240,7 +289,7 @@ yb-download-mp3 --reset
 ### Sistema de Verificação
 ```bash
 # Verificar se tudo está funcionando
-yb-download-mp3 --check
+yt-download --check
 ```
 - ✅ Valida instalação do FFmpeg
 - ✅ Testa conectividade com YouTube
@@ -250,7 +299,7 @@ yb-download-mp3 --check
 ### Auto-Atualizador
 ```bash
 # Verificar e instalar atualizações
-yb-download-mp3 --update
+yt-download --update
 ```
 - 🔄 Conecta automaticamente com GitHub
 - 📦 Baixa e instala versões mais recentes
@@ -260,7 +309,7 @@ yb-download-mp3 --update
 ### Downloads Paralelos
 Para playlists grandes, ative downloads paralelos:
 ```bash
-yb-download-mp3 --config
+yt-download --config
 # Escolha "Sim" para downloads paralelos
 # Configure máximo de downloads simultâneos (recomendado: 3)
 ```
@@ -276,7 +325,7 @@ Configurável via `--config`:
 ### Diagnóstico Automático
 ```bash
 # Primeira coisa a fazer em caso de problemas
-yb-download-mp3 --check
+yt-download --check
 ```
 
 ### Problemas Comuns
@@ -290,7 +339,7 @@ brew install ffmpeg
 sudo apt install ffmpeg
 
 # Verificar instalação
-yb-download-mp3 --check
+yt-download --check
 ```
 
 **❌ YouTube offline/degradado**
@@ -311,7 +360,7 @@ yb-download-mp3 --check
 ### Logs para Debug
 ```bash
 # Configurar logs detalhados
-yb-download-mp3 --config
+yt-download --config
 # Escolha log level: DEBUG
 
 # Ver logs em tempo real
@@ -336,7 +385,7 @@ tail -f yt_download.log
 ### Dicas de Performance
 ```bash
 # Para máxima velocidade em playlists
-yb-download-mp3 --config
+yt-download --config
 # Ative: parallel_downloads = true
 # Configure: max_parallel_downloads = 3-5
 

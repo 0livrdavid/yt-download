@@ -105,7 +105,8 @@ class YTDownloader:
                 import re
                 folder_name = re.sub(r'[<>:"/\\|?*]', '_', folder_name)
             
-            output_template = str(self.download_path / folder_name / "%(playlist_index)s - %(title)s.%(ext)s")
+            # Usar apenas o título da música sem o índice da playlist para evitar "NA -"
+            output_template = str(self.download_path / folder_name / "%(title)s.%(ext)s")
         
         # Base options
         ydl_opts = {
@@ -129,6 +130,15 @@ class YTDownloader:
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',
                     'preferredquality': quality if quality.isdigit() else '320',
+                }]
+            })
+        elif format_type in ["m4a", "ogg", "wav"]:
+            ydl_opts.update({
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': format_type,
+                    'preferredquality': quality if quality.isdigit() and format_type != 'wav' else None,
                 }]
             })
         else:
@@ -275,8 +285,14 @@ class YTDownloader:
             # Agora gerar as opções com o título correto da playlist
             playlist_title = None
             if is_playlist and 'entries' in info:
-                playlist_title = info.get('title', 'Playlist').strip()
-                if not playlist_title or playlist_title.lower() == 'na':
+                # Tentar várias formas de obter o título da playlist
+                playlist_title = (info.get('title', '') or 
+                                info.get('playlist_title', '') or 
+                                info.get('uploader', '') or
+                                'Playlist').strip()
+                
+                # Se ainda for vazio, NA ou inválido, usar um nome padrão
+                if not playlist_title or playlist_title.lower() in ['na', 'none', 'null']:
                     playlist_title = f"Playlist_{info.get('id', 'Unknown')}"
             
             ydl_opts = self._get_ydl_opts(format_type, quality, is_playlist, playlist_title)

@@ -11,11 +11,23 @@ class CLI:
     def __init__(self):
         self.console = console
     
-    def show_welcome(self):
-        welcome_text = """
-[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]
-[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]
-        """
+    def show_welcome(self, config=None):
+        welcome_text = "[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]\n"
+        welcome_text += "[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]"
+        
+        if config:
+            parallel_status = "🚀 Ativado" if config.get('parallel_downloads', False) else "⚪ Desativado"
+            format_info = config.get('audio_format', 'mp3').upper()
+            quality_info = config.get('audio_quality', '320')
+            
+            welcome_text += f"\n\n[bold]Configuração Atual:[/bold]"
+            welcome_text += f"\n• Formato: [cyan]{format_info}[/cyan] | Qualidade: [cyan]{quality_info}[/cyan]"
+            welcome_text += f"\n• Download Paralelo: {parallel_status}"
+            
+            if not config.get('parallel_downloads', False):
+                welcome_text += f"\n[yellow]💡 Dica: Ative o download paralelo para playlists mais rápidas[/yellow]"
+                welcome_text += f"\n[dim]   Use: yt-download --config[/dim]"
+        
         self.console.print(Panel(welcome_text, border_style="blue"))
     
     def get_url_input(self) -> str:

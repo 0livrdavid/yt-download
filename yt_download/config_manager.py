@@ -97,24 +97,33 @@ class ConfigManager:
         )
         self.config.set('duplicate_action', new_duplicate)
         
-        # Downloads paralelos
+        # Downloads paralelos (destacado)
+        rprint("\n[bold yellow]🚀 Downloads Paralelos (Recomendado)[/bold yellow]")
+        rprint("[dim]Acelera significativamente o download de playlists (até 3x mais rápido)[/dim]")
+        
         current_parallel = self.config.get('parallel_downloads')
         new_parallel = Confirm.ask(
-            f"Downloads paralelos em playlists? [{'Sim' if current_parallel else 'Não'}]",
+            f"Ativar downloads paralelos? [{'Sim' if current_parallel else 'Não'}]",
             default=current_parallel
         )
         self.config.set('parallel_downloads', new_parallel)
         
         if new_parallel:
+            rprint("[green]✅ Ótima escolha! Suas playlists serão baixadas muito mais rapidamente.[/green]")
             current_max_parallel = self.config.get('max_parallel_downloads')
             new_max_parallel = Prompt.ask(
-                f"Máximo de downloads simultâneos [{current_max_parallel}]",
+                f"Máximo de downloads simultâneos (1-5) [{current_max_parallel}]",
                 default=str(current_max_parallel)
             )
             try:
-                self.config.set('max_parallel_downloads', int(new_max_parallel))
+                max_val = max(1, min(5, int(new_max_parallel)))
+                self.config.set('max_parallel_downloads', max_val)
+                if max_val != int(new_max_parallel):
+                    rprint(f"[yellow]Valor ajustado para {max_val} (recomendado)[/yellow]")
             except ValueError:
                 rprint("[red]Valor inválido, mantendo configuração anterior[/red]")
+        else:
+            rprint("[yellow]💡 Dica: Downloads paralelos aceleram muito o processo de playlists[/yellow]")
         
         # Nível de log
         current_log = self.config.get('log_level')
