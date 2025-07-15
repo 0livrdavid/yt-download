@@ -363,8 +363,8 @@ Esta ferramenta é destinada apenas para uso pessoal e educacional. Respeite os 
 ## 👨‍💻 Autor
 
 **David Oliveira**
-- LinkedIn: [seu-linkedin](https://linkedin.com/in/seu-perfil)
-- GitHub: [@seu-usuario](https://github.com/seu-usuario)
+- LinkedIn: [olivr-davidg](https://www.linkedin.com/in/olivr-davidg)
+- GitHub: [@0livrdavid](https://github.com/0livrdavid)
 
 ---
 
