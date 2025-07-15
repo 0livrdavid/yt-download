@@ -10,7 +10,7 @@ Uma ferramenta CLI **profissional** e **robusta** para baixar vídeos e playlist
 
 **Por que escolher este downloader?**
 
-| Recurso | Outros Tools | **YB-Download-MP3** |
+| Recurso | Outros Tools | **yt-download** |
 |---------|--------------|---------------------|
 | 📊 **Progresso** | "Baixando..." | ⚡ Velocidade + ETA + % |
 | 🔄 **Falhas** | Erro = fim | 🛡️ 3 tentativas automáticas |
@@ -70,19 +70,19 @@ sudo apt update && sudo apt install ffmpeg
 - Baixe de [ffmpeg.org](https://ffmpeg.org/download.html)
 - Adicione ao PATH do sistema
 
-### Instalação do YB-Download-MP3
+### Instalação do yt-download
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/yt-download-mp3.git
-cd yt-download-mp3
+# Método 1: Instalação direta do GitHub (Recomendado)
+pip install git+https://github.com/0livrdavid/yt-download.git --user
 
-# Instale as dependências
-pip install -r requirements.txt
-
-# Instale globalmente
-pip install -e .
+# Método 2: Instalação local para desenvolvimento
+git clone https://github.com/0livrdavid/yt-download.git
+cd yt-download
+pip install -e . --user
 ```
+
+> 💡 **Dica**: Para desinstalar completamente, veja a seção [🗑️ Desinstalação](#️-desinstalação)
 
 ## 🚀 Como Usar
 
@@ -392,6 +392,19 @@ yt-download --config
 # Para economizar banda/espaço
 # Use qualidades menores: 128k ou 192k
 ```
+
+## 🗑️ Desinstalação
+
+Para remover completamente o yt-download do seu sistema:
+
+```bash
+# Desinstalar o pacote
+pip uninstall yt-download -y
+
+# Verificar se foi removido
+yt-download --version  # Deve retornar "command not found"
+```
+
 
 ## 🤝 Contribuindo
 
