@@ -11,6 +11,17 @@ from .url_validator import URLValidator
 from .downloader import YTDownloader
 from .updater import GitHubUpdater
 
+INTERACTIVE_COMMANDS = [
+    "/ ou /help  Mostrar comandos",
+    "/config     Abrir painel de configuração",
+    "/history    Mostrar histórico",
+    "/stats      Mostrar estatísticas",
+    "/check      Verificar sistema",
+    "/update     Buscar atualização",
+    "/reset      Limpar histórico",
+    "/quit       Sair",
+]
+
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Download YouTube videos and playlists as MP3 files",
@@ -142,6 +153,14 @@ def interactive_mode():
                 if not url.strip():
                     cli.show_error("URL não pode estar vazia")
                     continue
+
+                if url.strip().startswith("/"):
+                    should_exit = handle_interactive_command(cli, config, url.strip())
+                    config = Config()
+                    cli.show_welcome(config.settings)
+                    if should_exit:
+                        break
+                    continue
                 
                 # Processar download
                 success = handle_download(cli, config, url)
@@ -165,6 +184,68 @@ def interactive_mode():
                     
     except KeyboardInterrupt:
         rprint("\n[yellow]👋 Até logo![/yellow]")
+
+def handle_interactive_command(cli, config, command: str) -> bool:
+    normalized = command.lower()
+
+    if normalized in {"/", "/help"}:
+        cli.show_command_help(INTERACTIVE_COMMANDS)
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/config":
+        ConfigManager().interactive_config()
+        return False
+
+    downloader = YTDownloader(config=config.settings)
+
+    if normalized == "/history":
+        cli.show_history(downloader.get_history())
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/stats":
+        cli.show_stats(downloader.get_stats())
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/check":
+        system_check = downloader.check_system_requirements()
+        rprint("\n[bold blue]🔍 Verificação do Sistema[/bold blue]\n")
+        if system_check['ffmpeg']['installed']:
+            rprint(f"[green]✅ FFmpeg: {system_check['ffmpeg']['version']} - OK[/green]")
+        else:
+            rprint(f"[red]❌ FFmpeg: {system_check['ffmpeg']['error']}[/red]")
+            rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
+
+        youtube_info = system_check['youtube']
+        if youtube_info['all_working']:
+            rprint(f"[green]✅ YouTube: {youtube_info['overall_status'].title()}[/green]")
+        else:
+            rprint(f"[red]❌ YouTube: {youtube_info['overall_status'].title()}[/red]")
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/update":
+        GitHubUpdater().interactive_update()
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/reset":
+        if cli.show_reset_confirmation():
+            downloader.reset_history()
+            cli.show_reset_success()
+        else:
+            rprint("\n[yellow]Operação cancelada[/yellow]")
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized in {"/quit", "/exit"}:
+        return True
+
+    cli.show_warning(f"Comando não reconhecido: {command}")
+    cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+    return False
 
 def main():
     try:

@@ -6,6 +6,9 @@ from typing import Dict, Any
 DEFAULT_CONFIG = {
     "audio_format": "mp3",
     "audio_quality": "320",
+    "download_location_mode": "current_dir",
+    "system_downloads_path": "",
+    "custom_download_path": "",
     "download_thumbnails": False,
     "create_playlist_folder": True,
     "auto_mode_quality": "best",
@@ -51,6 +54,49 @@ def get_storage_path(filename: str) -> Path:
         return legacy_path
     ensure_config_dir()
     return current_path
+
+def detect_system_downloads_path() -> Path:
+    """Tenta detectar a pasta Downloads padrão do sistema."""
+    home = Path.home()
+
+    xdg_config = home / ".config" / "user-dirs.dirs"
+    if xdg_config.exists():
+        try:
+            contents = xdg_config.read_text(encoding="utf-8")
+            for line in contents.splitlines():
+                if line.startswith("XDG_DOWNLOAD_DIR="):
+                    raw_value = line.split("=", 1)[1].strip().strip('"')
+                    expanded = raw_value.replace("$HOME", str(home))
+                    return Path(expanded).expanduser()
+        except OSError:
+            pass
+
+    return home / "Downloads"
+
+def resolve_download_directory(settings: Dict[str, Any], current_dir: Path = None) -> Path:
+    """Resolve o diretório efetivo de download a partir das configurações."""
+    current_dir = current_dir or Path.cwd()
+    mode = settings.get("download_location_mode", "current_dir")
+
+    if mode == "system_downloads":
+        configured_path = settings.get("system_downloads_path", "").strip()
+        path = Path(configured_path).expanduser() if configured_path else detect_system_downloads_path()
+        return path
+
+    if mode == "custom_path":
+        configured_path = settings.get("custom_download_path", "").strip()
+        if configured_path:
+            return Path(configured_path).expanduser()
+
+    return current_dir
+
+def get_download_mode_label(settings: Dict[str, Any], current_dir: Path = None) -> str:
+    mode = settings.get("download_location_mode", "current_dir")
+    if mode == "system_downloads":
+        return "Downloads do sistema"
+    if mode == "custom_path":
+        return "Pasta personalizada"
+    return "Pasta atual"
 
 class Config:
     def __init__(self):

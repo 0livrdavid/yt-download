@@ -7,6 +7,7 @@ from rich.text import Text
 from pathlib import Path
 from typing import Dict, Any, List
 from . import __version__
+from .config import resolve_download_directory, get_download_mode_label
 
 console = Console()
 
@@ -23,16 +24,19 @@ class CLI:
         welcome_text = "[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]\n"
         welcome_text += "[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]"
         welcome_text += f"\n[dim]Versão {__version__}[/dim]"
-        welcome_text += f"\n[dim]Destino: {Path.cwd()}[/dim]"
 
         if config:
+            destination = resolve_download_directory(config, Path.cwd())
+            destination_mode = get_download_mode_label(config, Path.cwd())
             parallel_status = "🚀 Ativado" if config.get('parallel_downloads', False) else "⚪ Desativado"
             format_info = config.get('audio_format', 'mp3').upper()
             quality_info = config.get('audio_quality', '320')
 
             welcome_text += f"\n\n[bold]Configuração Atual:[/bold]"
             welcome_text += f"\n• Formato: [cyan]{format_info}[/cyan] | Qualidade: [cyan]{quality_info}[/cyan]"
+            welcome_text += f"\n• Destino: [cyan]{destination_mode}[/cyan] | [dim]{destination}[/dim]"
             welcome_text += f"\n• Download Paralelo: {parallel_status}"
+            welcome_text += f"\n[dim]Digite / para ver comandos rápidos[/dim]"
 
             if not config.get('parallel_downloads', False):
                 welcome_text += f"\n[yellow]💡 Dica: Ative o download paralelo para playlists mais rápidas[/yellow]"
@@ -145,6 +149,14 @@ class CLI:
         self.notice_message = f"⚠️  {message}"
         self.notice_style = "yellow"
         self.render_screen()
+
+    def show_command_help(self, commands: List[str]):
+        self.status_message = ""
+        self.notice_message = ""
+        self.render_screen()
+        rprint("\n[bold blue]Comandos rápidos[/bold blue]")
+        for command in commands:
+            rprint(f"[cyan]{command}[/cyan]")
 
     def show_success(self, title: str, filename: str, file_size: float = None):
         self.status_message = ""

@@ -5,6 +5,7 @@ import concurrent.futures
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable, List
 from .history import DownloadHistory
+from .config import resolve_download_directory
 from .utils import SystemValidator, FileUtils, NetworkUtils
 from .logger import get_logger
 
@@ -12,8 +13,9 @@ class YTDownloader:
     def __init__(self, progress_callback: Optional[Callable] = None, config: Dict[str, Any] = None):
         self.progress_callback = progress_callback
         self.history = DownloadHistory()
-        self.download_path = Path.cwd()
         self.config = config or {}
+        self.download_path = resolve_download_directory(self.config, Path.cwd())
+        self.download_path.mkdir(parents=True, exist_ok=True)
         self.logger = get_logger()
         self.max_retries = self.config.get('max_retries', 3)
         self.duplicate_action = self.config.get('duplicate_action', 'skip')  # skip, overwrite, rename
