@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import re
 from typing import Dict, Any, Optional
 
 import requests
@@ -14,7 +15,9 @@ class GitHubUpdater:
         self.repo_url = repo_url
         clean_url = repo_url.removesuffix(".git")
         repo_path = clean_url.replace("https://github.com/", "")
+        self.repo_path = repo_path
         self.api_url = f"https://api.github.com/repos/{repo_path}"
+        self.raw_base_url = f"https://raw.githubusercontent.com/{repo_path}/main"
         self.current_version = __version__
 
     def get_latest_release(self) -> Optional[Dict[str, Any]]:
@@ -37,6 +40,19 @@ class GitHubUpdater:
             return None
         except Exception as e:
             rprint(f"[red]Erro ao verificar commits: {e}[/red]")
+            return None
+
+    def get_latest_version_from_main(self) -> Optional[str]:
+        """Lê a versão publicada no arquivo __init__.py da branch main."""
+        try:
+            response = requests.get(f"{self.raw_base_url}/yt_download/__init__.py", timeout=10)
+            if response.status_code == 200:
+                match = re.search(r'__version__\s*=\s*"([^"]+)"', response.text)
+                if match:
+                    return match.group(1)
+            return None
+        except Exception as e:
+            rprint(f"[red]Erro ao verificar versão da main: {e}[/red]")
             return None
 
     def compare_versions(self, latest_version: str) -> str:
@@ -62,6 +78,19 @@ class GitHubUpdater:
         """Verifica se há atualizações disponíveis."""
         rprint("[blue]🔍 Verificando atualizações...[/blue]")
 
+        latest_commit = self.get_latest_commit()
+        latest_main_version = self.get_latest_version_from_main()
+        if latest_main_version:
+            status = self.compare_versions(latest_main_version)
+            return {
+                "update_available": status == "outdated",
+                "latest_version": latest_main_version,
+                "current_version": self.current_version,
+                "status": status,
+                "commit_info": latest_commit,
+                "source": "main",
+            }
+
         latest_release = self.get_latest_release()
         if latest_release:
             latest_version = latest_release["tag_name"]
@@ -73,18 +102,6 @@ class GitHubUpdater:
                 "status": status,
                 "release_info": latest_release,
                 "source": "release",
-            }
-
-        latest_commit = self.get_latest_commit()
-        if latest_commit:
-            latest_sha = latest_commit["sha"][:8]
-            return {
-                "update_available": True,
-                "latest_version": latest_sha,
-                "current_version": self.current_version,
-                "status": "commit_available",
-                "commit_info": latest_commit,
-                "source": "commit",
             }
 
         return {
@@ -128,7 +145,15 @@ class GitHubUpdater:
                 )
             return True
 
-        if update_info["source"] == "release":
+        if update_info["source"] == "main":
+            commit = update_info.get("commit_info")
+            rprint("\n[bold blue]🎉 Nova versão disponível na branch main![/bold blue]")
+            rprint(f"[cyan]Atual:[/cyan] {update_info['current_version']}")
+            rprint(f"[green]Nova:[/green] {update_info['latest_version']}")
+            if commit:
+                rprint(f"[dim]Commit: {commit['sha'][:8]}[/dim]")
+                rprint(f"[dim]{commit['commit']['message'].splitlines()[0]}[/dim]")
+        elif update_info["source"] == "release":
             release = update_info["release_info"]
             rprint("\n[bold blue]🎉 Nova versão disponível![/bold blue]")
             rprint(f"[cyan]Atual:[/cyan] {update_info['current_version']}")
@@ -141,13 +166,6 @@ class GitHubUpdater:
                 if len(release["body"]) > 300:
                     description += "..."
                 rprint(f"[dim]{description}[/dim]")
-        else:
-            commit = update_info["commit_info"]
-            rprint("\n[bold blue]🔄 Atualizações disponíveis![/bold blue]")
-            rprint(f"[cyan]Versão atual:[/cyan] {update_info['current_version']}")
-            rprint(f"[green]Último commit:[/green] {update_info['latest_version']}")
-            rprint(f"[dim]{commit['commit']['message'].splitlines()[0]}[/dim]")
-
         if Confirm.ask("\n[yellow]Deseja instalar a atualização?[/yellow]"):
             success = self.install_latest_from_git()
             if success:
