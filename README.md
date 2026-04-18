@@ -2,7 +2,7 @@
 
 Uma ferramenta CLI **profissional** e **robusta** para baixar vídeos e playlists do YouTube em múltiplos formatos de áudio de alta qualidade (MP3, M4A, OGG, WAV), com recursos avançados de retry, downloads paralelos, auto-updater e muito mais.
 
-![Python](https://img.shields.io/badge/python-3.7+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 
@@ -51,36 +51,114 @@ Uma ferramenta CLI **profissional** e **robusta** para baixar vídeos e playlist
 
 ### Pré-requisitos
 
-- Python 3.7 ou superior
+- Python 3.10 ou superior
 - FFmpeg instalado no sistema
 
-#### Instalando FFmpeg:
+### 1. Instale o FFmpeg
 
-**macOS (Homebrew):**
+#### macOS (Homebrew)
+
 ```bash
 brew install ffmpeg
 ```
 
-**Ubuntu/Debian:**
+#### Ubuntu/Debian
+
 ```bash
 sudo apt update && sudo apt install ffmpeg
 ```
 
-**Windows:**
+#### Windows
+
 - Baixe de [ffmpeg.org](https://ffmpeg.org/download.html)
 - Adicione ao PATH do sistema
 
-### Instalação do yt-download
+### 2. Instale o yt-download
+
+#### macOS e Linux
 
 ```bash
-# Método 1: Instalação direta do GitHub (Recomendado)
-pip install git+https://github.com/0livrdavid/yt-download.git --user
-
-# Método 2: Instalação local para desenvolvimento
-git clone https://github.com/0livrdavid/yt-download.git
-cd yt-download
-pip install -e . --user
+python3 -m pip install --user git+https://github.com/0livrdavid/yt-download.git
 ```
+
+#### Windows
+
+```bat
+py -m pip install --user git+https://github.com/0livrdavid/yt-download.git
+```
+
+Isso instala o comando `yt-download` no usuário atual, sem precisar de `sudo` ou permissões de administrador.
+
+### 3. Se `yt-download` não for encontrado, ajuste o PATH
+
+Na maioria dos casos o comando já funciona logo após a instalação. Se o terminal disser que `yt-download` não existe, adicione a pasta de scripts do Python ao `PATH`.
+
+#### macOS e Linux
+
+Para a sessão atual:
+
+```bash
+export PATH="$(python3 -m site --user-base)/bin:$PATH"
+```
+
+Para manter em novas sessões:
+
+```bash
+echo 'export PATH="$(python3 -m site --user-base)/bin:$PATH"' >> ~/.zprofile
+source ~/.zprofile
+```
+
+#### Windows
+
+Adicione ao `PATH` a pasta `Scripts` da sua instalação de Python do usuário. Ela costuma ser algo como:
+
+```text
+C:\Users\SEU_USUARIO\AppData\Roaming\Python\Python39\Scripts
+```
+
+ou:
+
+```text
+C:\Users\SEU_USUARIO\AppData\Roaming\Python\Python311\Scripts
+```
+
+O número da versão pode mudar conforme o Python instalado.
+
+### 4. Teste a instalação
+
+Depois disso, o comando já deve estar funcionando:
+
+```bash
+yt-download --version
+```
+
+Se quiser abrir direto o programa:
+
+```bash
+yt-download
+```
+
+### Instalação local para desenvolvimento
+
+Se você já clonou este repositório e quer instalar a versão local do projeto:
+
+```bash
+python3 -m pip install --user .
+```
+
+No Windows:
+
+```bat
+py -m pip install --user .
+```
+
+### Compatibilidade com instalações antigas
+
+Versões antigas do projeto salvavam arquivos como `~/yt_download_config.json`,
+`~/yt_download_history.json` e `~/yt_download.log` diretamente na sua pasta pessoal.
+
+A versão atual continua lendo esses arquivos antigos automaticamente. Se eles já
+existirem, serão reaproveitados sem você precisar mover nada manualmente.
 
 > 💡 **Dica**: Para desinstalar completamente, veja a seção [🗑️ Desinstalação](#️-desinstalação)
 
@@ -171,8 +249,22 @@ pasta-atual/
 │   ├── 01 - Primeira Música.mp3
 │   ├── 02 - Segunda Música.mp3
 │   └── ...
-├── yt_download_config.json    # Configurações
-└── yt_download_history.json   # Histórico
+```
+
+Arquivos de configuração e histórico:
+
+```text
+~/.yt-download/yt_download_config.json
+~/.yt-download/yt_download_history.json
+~/.yt-download/yt_download.log
+```
+
+Compatibilidade legada:
+
+```text
+~/yt_download_config.json
+~/yt_download_history.json
+~/yt_download.log
 ```
 
 ## ⚙️ Configuração
@@ -181,7 +273,7 @@ pasta-atual/
 Use `yt-download --config` para configurar via interface gráfica interativa.
 
 ### Arquivo de Configuração
-O arquivo `yt_download_config.json` é criado automaticamente com:
+O arquivo `~/.yt-download/yt_download_config.json` é criado automaticamente com:
 
 ```json
 {

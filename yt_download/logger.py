@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+from .config import LOG_FILE, get_storage_path
 
 class YTDownloadLogger:
     def __init__(self, log_level: str = "INFO", log_file: Optional[str] = None):
@@ -69,10 +70,7 @@ _logger_instance = None
 def get_logger(log_level: str = "INFO", log_file: Optional[str] = None) -> YTDownloadLogger:
     global _logger_instance
     if _logger_instance is None:
-        # Usar log file padrão se não especificado
         if log_file is None:
-            config_dir = Path.home() / ".yt-download"
-            config_dir.mkdir(exist_ok=True)
-            log_file = config_dir / "yt_download.log"
+            log_file = get_storage_path(LOG_FILE)
         _logger_instance = YTDownloadLogger(log_level, str(log_file))
     return _logger_instance
