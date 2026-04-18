@@ -70,8 +70,11 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
                 rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
                 return False
             if not system_check['network']:
-                cli.show_error("Sem conexão com a internet")
-                return False
+                youtube_error = system_check['youtube']['endpoints']['https://www.youtube.com'].get('error')
+                rprint("\n[yellow]⚠️  O teste automático de conectividade com o YouTube falhou.[/yellow]")
+                if youtube_error:
+                    rprint(f"[dim]Detalhe: {youtube_error}[/dim]")
+                rprint("[dim]O download continuará e o yt-dlp tentará acessar o link informado.[/dim]")
         
         # Validar URL
         cli.show_progress("Validando URL...")
