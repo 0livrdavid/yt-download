@@ -3,7 +3,6 @@ import sys
 from pathlib import Path
 
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich import print as rprint
 
@@ -194,24 +193,26 @@ class ConfigManager:
             f"[dim]Destino efetivo agora: {effective_dir}[/dim]"
         )
         console.print(Panel(header, border_style="blue"))
-
-        table = Table(show_header=True, header_style="bold cyan")
-        table.add_column("Opção", style="white")
-        table.add_column("Valor", style="green")
-        table.add_column("Ajuda", style="dim")
-
+        lines = []
         for index, key in enumerate(self.FIELD_ORDER):
             label = self.LABELS[key]
             value = self._field_value(key)
             help_text = self._field_help(key)
             if index == self.selected_index:
-                label = f"❯ {label}"
-                value = f"[bold]{value}[/bold]"
+                prefix = "[bold cyan]❯[/bold cyan]"
+                label_text = f"[bold]{label}[/bold]"
+                value_text = f"[bold green]{value}[/bold green]"
             else:
-                label = f"  {label}"
-            table.add_row(label, value, help_text)
+                prefix = " "
+                label_text = label
+                value_text = f"[green]{value}[/green]"
 
-        console.print(table)
+            line = f"{prefix} {label_text}: {value_text}"
+            if help_text:
+                line += f"\n    [dim]{help_text}[/dim]"
+            lines.append(line)
+
+        console.print(Panel("\n".join(lines), border_style="cyan", title="Opções"))
 
     def _edit_selected_field(self):
         key = self.FIELD_ORDER[self.selected_index]
