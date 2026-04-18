@@ -1,3 +1,5 @@
+import os
+import sys
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
 from rich.table import Table
@@ -10,6 +12,66 @@ from . import __version__
 from .config import resolve_download_directory, get_download_mode_label
 
 console = Console()
+
+
+class _InputReader:
+    def __enter__(self):
+        self.active = False
+        if os.name != "nt":
+            import termios
+            import tty
+
+            self.termios = termios
+            self.fd = sys.stdin.fileno()
+            self.old_settings = termios.tcgetattr(self.fd)
+            self.tty = tty
+            self.resume()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        if os.name != "nt":
+            self.suspend()
+
+    def suspend(self):
+        if os.name != "nt" and self.active:
+            self.termios.tcsetattr(self.fd, self.termios.TCSADRAIN, self.old_settings)
+            self.active = False
+
+    def resume(self):
+        if os.name != "nt" and not self.active:
+            self.tty.setraw(self.fd)
+            self.active = True
+
+    def read_key(self):
+        if os.name == "nt":
+            import msvcrt
+
+            key = msvcrt.getwch()
+            if key in ("\x00", "\xe0"):
+                special = msvcrt.getwch()
+                mapping = {"H": "up", "P": "down", "K": "left", "M": "right"}
+                return mapping.get(special, "")
+            if key == "\r":
+                return "enter"
+            if key == "\x1b":
+                return "esc"
+            if key == "\x08":
+                return "backspace"
+            return key
+
+        first = sys.stdin.read(1)
+        if first == "\x1b":
+            second = sys.stdin.read(1)
+            if second == "[":
+                third = sys.stdin.read(1)
+                mapping = {"A": "up", "B": "down", "C": "right", "D": "left"}
+                return mapping.get(third, "esc")
+            return "esc"
+        if first in ("\r", "\n"):
+            return "enter"
+        if first in ("\x7f", "\b"):
+            return "backspace"
+        return first
 
 class CLI:
     def __init__(self):
@@ -33,8 +95,8 @@ class CLI:
             quality_info = config.get('audio_quality', '320')
 
             welcome_text += f"\n\n[bold]Configuração Atual:[/bold]"
-            welcome_text += f"\n• Formato: [cyan]{format_info}[/cyan] | Qualidade: [cyan]{quality_info}[/cyan]"
-            welcome_text += f"\n• Destino: [cyan]{destination_mode}[/cyan] | [dim]{destination}[/dim]"
+            welcome_text += f"\n• Formato: [cyan]{format_info}[/cyan]|Qualidade: [cyan]{quality_info}[/cyan]"
+            welcome_text += f"\n• Destino: [cyan]{destination_mode}[/cyan]|[dim]{destination}[/dim]"
             welcome_text += f"\n• Download Paralelo: {parallel_status}"
             welcome_text += f"\n[dim]Digite / para ver comandos rápidos[/dim]"
 
@@ -63,11 +125,53 @@ class CLI:
         self.notice_message = ""
         self.render_screen(config)
 
-    def get_url_input(self) -> str:
+    def _render_url_prompt(self, buffer: str):
         self.status_message = ""
         self.notice_message = ""
         self.render_screen()
-        return Prompt.ask("\n[yellow]📎 Cole o link do YouTube[/yellow]")
+        sys.stdout.write(f"\n📎 Cole o link do YouTube: {buffer}")
+        sys.stdout.flush()
+
+    def get_url_input(self, commands: List[str] = None):
+        if not sys.stdin.isatty():
+            self.status_message = ""
+            self.notice_message = ""
+            self.render_screen()
+            return Prompt.ask("\n[yellow]📎 Cole o link do YouTube[/yellow]")
+
+        buffer = ""
+        commands = commands or []
+
+        with _InputReader() as reader:
+            while True:
+                self._render_url_prompt(buffer)
+                key = reader.read_key()
+
+                if key == "enter":
+                    sys.stdout.write("\n")
+                    sys.stdout.flush()
+                    return buffer.strip()
+
+                if key == "backspace":
+                    buffer = buffer[:-1]
+                    continue
+
+                if key == "esc":
+                    sys.stdout.write("\n")
+                    sys.stdout.flush()
+                    raise KeyboardInterrupt
+
+                if key == "/" and not buffer:
+                    selected_command = self.choose_command(commands)
+                    if not selected_command:
+                        continue
+                    sys.stdout.write("\n")
+                    sys.stdout.flush()
+                    return {"type": "command", "value": selected_command}
+                    continue
+
+                if isinstance(key, str) and len(key) == 1 and key.isprintable():
+                    buffer += key
 
     def show_url_info(self, info: Dict[str, Any]):
         if info['is_playlist']:
@@ -154,9 +258,43 @@ class CLI:
         self.status_message = ""
         self.notice_message = ""
         self.render_screen()
-        rprint("\n[bold blue]Comandos rápidos[/bold blue]")
-        for command in commands:
-            rprint(f"[cyan]{command}[/cyan]")
+        commands_text = "\n".join(f"[cyan]{command}[/cyan]" for command in commands)
+        self.console.print("")
+        self.console.print(Panel(commands_text, border_style="cyan", title="Comandos rápidos"))
+
+    def choose_command(self, commands: List[str]):
+        if not sys.stdin.isatty():
+            self.show_command_help(commands)
+            return None
+
+        items = [command for command in commands if command.startswith("/")]
+        selected_index = 0
+
+        with _InputReader() as reader:
+            while True:
+                self.status_message = ""
+                self.notice_message = ""
+                self.render_screen()
+
+                lines = ["[dim]↑/↓ navega • Enter executa • Esc volta[/dim]", ""]
+                for index, item in enumerate(items):
+                    if index == selected_index:
+                        lines.append(f"[bold cyan]❯ {item}[/bold cyan]")
+                    else:
+                        lines.append(f"  {item}")
+
+                self.console.print("")
+                self.console.print(Panel("\n".join(lines), border_style="cyan", title="Comandos rápidos"))
+                key = reader.read_key()
+
+                if key == "up":
+                    selected_index = (selected_index - 1) % len(items)
+                elif key == "down":
+                    selected_index = (selected_index + 1) % len(items)
+                elif key == "enter":
+                    return items[selected_index].split()[0]
+                elif key == "esc":
+                    return None
 
     def show_success(self, title: str, filename: str, file_size: float = None):
         self.status_message = ""

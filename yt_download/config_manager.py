@@ -2,7 +2,6 @@ import os
 import sys
 from pathlib import Path
 
-from rich.align import Align
 from rich.console import Console
 from rich.panel import Panel
 from rich import print as rprint
@@ -11,6 +10,11 @@ from rich.text import Text
 from .config import Config, DEFAULT_CONFIG, detect_system_downloads_path, resolve_download_directory
 
 console = Console()
+
+
+def _hard_clear():
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
 
 
 class _KeyReader:
@@ -83,6 +87,7 @@ class _KeyReader:
 
 
 class ConfigManager:
+    VISIBLE_ITEMS = 5
     FIELD_ORDER = [
         "audio_format",
         "audio_quality",
@@ -131,6 +136,7 @@ class ConfigManager:
     def __init__(self):
         self.config = Config()
         self.selected_index = 0
+        self.scroll_offset = 0
 
     def _next_value(self, key: str, direction: int):
         if key == "audio_quality" and self.config.get("audio_format") != "mp3":
@@ -179,26 +185,36 @@ class ConfigManager:
 
     def _field_help(self, key: str) -> str:
         help_map = {
-            "download_location_mode": "Use ←/→ para trocar o modo e Enter para editar caminhos",
-            "audio_quality": "Disponível apenas para MP3",
-            "max_parallel_downloads": "Só vale quando downloads paralelos estiverem ativos",
+            "audio_quality": "(disponivel apenas para MP3)",
+            "max_parallel_downloads": "(so vale quando downloads paralelos estiverem ativos)",
         }
         return help_map.get(key, "")
 
-    def _render(self):
-        console.clear()
+    def _ensure_visible(self):
+        if self.selected_index < self.scroll_offset:
+            self.scroll_offset = self.selected_index
+        elif self.selected_index >= self.scroll_offset + self.VISIBLE_ITEMS:
+            self.scroll_offset = self.selected_index - self.VISIBLE_ITEMS + 1
+
+    def _render(self, cli=None):
+        self._ensure_visible()
+        if cli is not None:
+            cli.show_welcome(self.config.settings)
+        else:
+            _hard_clear()
+
         effective_dir = resolve_download_directory(self.config.settings, Path.cwd())
-        panel_width = min(max(console.width - 4, 60), 110)
+        visible_keys = self.FIELD_ORDER[self.scroll_offset:self.scroll_offset + self.VISIBLE_ITEMS]
+        lines: list[Text] = [
+            Text("↑/↓ navega • ←/→ altera • Enter edita • Esc sai", style="dim"),
+            Text(" "),
+        ]
 
-        header = (
-            "[bold blue]⚙️ Configurações[/bold blue]\n"
-            "[dim]↑/↓ navega • ←/→ altera • Enter edita opções especiais • Esc sai[/dim]\n"
-            f"[dim]Destino efetivo agora: {effective_dir}[/dim]"
-        )
-        console.print(Align.center(Panel(header, border_style="blue", width=panel_width, padding=(1, 2))))
+        if self.scroll_offset > 0:
+            lines.append(Text("▲ Há mais opções acima", style="dim"))
 
-        lines: list[Text] = []
-        for index, key in enumerate(self.FIELD_ORDER):
+        for key in visible_keys:
+            index = self.FIELD_ORDER.index(key)
             label = self.LABELS[key]
             value = self._field_value(key)
             help_text = self._field_help(key)
@@ -206,24 +222,24 @@ class ConfigManager:
             row = Text()
             if index == self.selected_index:
                 row.append("❯ ", style="bold cyan")
-                row.append(f"{label:<28}", style="bold")
-                row.append(" ")
+                row.append(f"{label:<28}", style="bold white")
+                row.append("  ")
                 row.append(value, style="bold green")
             else:
-                row.append("  ", style="dim")
+                row.append("  ")
                 row.append(f"{label:<28}", style="white")
-                row.append(" ")
+                row.append("  ")
                 row.append(value, style="green")
-            lines.append(row)
 
             if help_text:
-                help_row = Text("    " + help_text, style="dim")
-                lines.append(help_row)
+                row.append("  ", style="white")
+                row.append(help_text, style="dim")
 
+            lines.append(row)
             lines.append(Text(""))
 
-        if lines:
-            lines.pop()
+        if self.scroll_offset + self.VISIBLE_ITEMS < len(self.FIELD_ORDER):
+            lines.append(Text("▼ Há mais opções abaixo", style="dim"))
 
         body = Text()
         for line in lines:
@@ -232,7 +248,8 @@ class ConfigManager:
         if lines:
             body = body[:-1]
 
-        console.print(Align.center(Panel(body, border_style="cyan", title="Opções", width=panel_width, padding=(1, 2))))
+        console.print("")
+        console.print(Panel(body, border_style="cyan", title="Configurações", padding=(0, 1)))
 
     def _edit_selected_field(self):
         key = self.FIELD_ORDER[self.selected_index]
@@ -241,7 +258,7 @@ class ConfigManager:
             mode = self.config.get("download_location_mode")
             if mode == "system_downloads":
                 detected = self.config.get("system_downloads_path", "").strip() or str(detect_system_downloads_path())
-                console.clear()
+                _hard_clear()
                 console.print(Panel(
                     "[bold blue]Editar pasta Downloads do sistema[/bold blue]\n"
                     "[dim]Deixe vazio para usar a pasta detectada automaticamente.[/dim]",
@@ -251,7 +268,7 @@ class ConfigManager:
                 self.config.set("system_downloads_path", new_value)
             elif mode == "custom_path":
                 current = self.config.get("custom_download_path", "").strip() or str(Path.cwd())
-                console.clear()
+                _hard_clear()
                 console.print(Panel(
                     "[bold blue]Editar pasta personalizada[/bold blue]\n"
                     "[dim]Informe o caminho completo da pasta onde os arquivos serão salvos.[/dim]",
@@ -264,7 +281,7 @@ class ConfigManager:
 
         if key == "max_retries":
             current = str(self.config.get(key))
-            console.clear()
+            _hard_clear()
             new_value = console.input(f"Tentativas máximas [{current}]: ").strip()
             if new_value.isdigit():
                 self.config.set(key, max(1, min(10, int(new_value))))
@@ -272,12 +289,12 @@ class ConfigManager:
 
         if key == "max_parallel_downloads":
             current = str(self.config.get(key))
-            console.clear()
+            _hard_clear()
             new_value = console.input(f"Máximo de downloads simultâneos [{current}]: ").strip()
             if new_value.isdigit():
                 self.config.set(key, max(1, min(5, int(new_value))))
 
-    def interactive_config(self):
+    def interactive_config(self, cli=None):
         """Interface interativa com navegação por teclas."""
         if not sys.stdin.isatty():
             rprint("[red]❌ O painel interativo precisa de um terminal TTY.[/red]")
@@ -285,7 +302,7 @@ class ConfigManager:
 
         with _KeyReader() as reader:
             while True:
-                self._render()
+                self._render(cli)
                 key = reader.read_key()
 
                 if key == "up":
@@ -302,12 +319,15 @@ class ConfigManager:
                 elif key == "esc":
                     break
 
-        console.clear()
+        if cli is not None:
+            cli.show_welcome(self.config.settings)
+        else:
+            _hard_clear()
         rprint("[green]✅ Configurações salvas.[/green]")
 
     def reset_config(self):
         """Restaura configurações padrão."""
-        console.clear()
+        _hard_clear()
         choice = console.input("[red]Restaurar todas as configurações para o padrão? [y/N]: [/red]").strip().lower()
         if choice == "y":
             self.config.save_config(DEFAULT_CONFIG.copy())

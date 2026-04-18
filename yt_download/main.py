@@ -148,8 +148,18 @@ def interactive_mode():
         while True:
             try:
                 # Obter URL
-                url = cli.get_url_input()
-                
+                user_input = cli.get_url_input(INTERACTIVE_COMMANDS)
+
+                if isinstance(user_input, dict) and user_input.get("type") == "command":
+                    should_exit = handle_interactive_command(cli, config, user_input["value"])
+                    config = Config()
+                    cli.show_welcome(config.settings)
+                    if should_exit:
+                        break
+                    continue
+
+                url = user_input
+
                 if not url.strip():
                     cli.show_error("URL não pode estar vazia")
                     continue
@@ -194,7 +204,7 @@ def handle_interactive_command(cli, config, command: str) -> bool:
         return False
 
     if normalized == "/config":
-        ConfigManager().interactive_config()
+        ConfigManager().interactive_config(cli)
         return False
 
     downloader = YTDownloader(config=config.settings)
