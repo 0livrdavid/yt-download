@@ -4,6 +4,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import print as rprint
 from typing import Dict, Any, List
+from . import __version__
 
 console = Console()
 
@@ -14,6 +15,7 @@ class CLI:
     def show_welcome(self, config=None):
         welcome_text = "[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]\n"
         welcome_text += "[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]"
+        welcome_text += f"\n[dim]Versão {__version__}[/dim]"
         
         if config:
             parallel_status = "🚀 Ativado" if config.get('parallel_downloads', False) else "⚪ Desativado"

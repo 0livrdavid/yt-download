@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="yt-download",
-    version="1.0.1",
+    version="1.0.2",
     author="David Oliveira",
     author_email="olivr.david@gmail.com",
     description="A simple CLI tool to download YouTube videos and playlists in multiple audio formats",
