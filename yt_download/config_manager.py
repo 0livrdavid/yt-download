@@ -2,9 +2,11 @@ import os
 import sys
 from pathlib import Path
 
+from rich.align import Align
 from rich.console import Console
 from rich.panel import Panel
 from rich import print as rprint
+from rich.text import Text
 
 from .config import Config, DEFAULT_CONFIG, detect_system_downloads_path, resolve_download_directory
 
@@ -186,33 +188,51 @@ class ConfigManager:
     def _render(self):
         console.clear()
         effective_dir = resolve_download_directory(self.config.settings, Path.cwd())
+        panel_width = min(max(console.width - 4, 60), 110)
 
         header = (
             "[bold blue]⚙️ Configurações[/bold blue]\n"
             "[dim]↑/↓ navega • ←/→ altera • Enter edita opções especiais • Esc sai[/dim]\n"
             f"[dim]Destino efetivo agora: {effective_dir}[/dim]"
         )
-        console.print(Panel(header, border_style="blue"))
-        lines = []
+        console.print(Align.center(Panel(header, border_style="blue", width=panel_width, padding=(1, 2))))
+
+        lines: list[Text] = []
         for index, key in enumerate(self.FIELD_ORDER):
             label = self.LABELS[key]
             value = self._field_value(key)
             help_text = self._field_help(key)
+
+            row = Text()
             if index == self.selected_index:
-                prefix = "[bold cyan]❯[/bold cyan]"
-                label_text = f"[bold]{label}[/bold]"
-                value_text = f"[bold green]{value}[/bold green]"
+                row.append("❯ ", style="bold cyan")
+                row.append(f"{label:<28}", style="bold")
+                row.append(" ")
+                row.append(value, style="bold green")
             else:
-                prefix = " "
-                label_text = label
-                value_text = f"[green]{value}[/green]"
+                row.append("  ", style="dim")
+                row.append(f"{label:<28}", style="white")
+                row.append(" ")
+                row.append(value, style="green")
+            lines.append(row)
 
-            line = f"{prefix} {label_text}: {value_text}"
             if help_text:
-                line += f"\n    [dim]{help_text}[/dim]"
-            lines.append(line)
+                help_row = Text("    " + help_text, style="dim")
+                lines.append(help_row)
 
-        console.print(Panel("\n".join(lines), border_style="cyan", title="Opções"))
+            lines.append(Text(""))
+
+        if lines:
+            lines.pop()
+
+        body = Text()
+        for line in lines:
+            body.append_text(line)
+            body.append("\n")
+        if lines:
+            body = body[:-1]
+
+        console.print(Align.center(Panel(body, border_style="cyan", title="Opções", width=panel_width, padding=(1, 2))))
 
     def _edit_selected_field(self):
         key = self.FIELD_ORDER[self.selected_index]
