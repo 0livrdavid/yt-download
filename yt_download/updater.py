@@ -166,6 +166,7 @@ class GitHubUpdater:
                 if len(release["body"]) > 300:
                     description += "..."
                 rprint(f"[dim]{description}[/dim]")
+
         if Confirm.ask("\n[yellow]Deseja instalar a atualização?[/yellow]"):
             success = self.install_latest_from_git()
             if success:

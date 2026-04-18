@@ -116,7 +116,7 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
                     for fail in failed[:5]:  # Mostrar apenas os primeiros 5
                         rprint(f"  • {fail['title']}")
         else:
-            cli.show_success(result['title'], result['filename'])
+            cli.show_success(result['title'], result['filename'], result.get('file_size'))
         
         return True
         

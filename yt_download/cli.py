@@ -4,6 +4,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich import print as rprint
 from rich.text import Text
+from pathlib import Path
 from typing import Dict, Any, List
 from . import __version__
 
@@ -22,6 +23,7 @@ class CLI:
         welcome_text = "[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]\n"
         welcome_text += "[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]"
         welcome_text += f"\n[dim]Versão {__version__}[/dim]"
+        welcome_text += f"\n[dim]Destino: {Path.cwd()}[/dim]"
 
         if config:
             parallel_status = "🚀 Ativado" if config.get('parallel_downloads', False) else "⚪ Desativado"
@@ -144,13 +146,15 @@ class CLI:
         self.notice_style = "yellow"
         self.render_screen()
 
-    def show_success(self, title: str, filename: str):
+    def show_success(self, title: str, filename: str, file_size: float = None):
         self.status_message = ""
         self.notice_message = ""
         self.render_screen()
         rprint(f"\n[green]✅ Download concluído![/green]")
         rprint(f"[bold]Título:[/bold] {title}")
         rprint(f"[bold]Arquivo:[/bold] {filename}")
+        if file_size is not None:
+            rprint(f"[bold]Tamanho:[/bold] {file_size:.2f} MB")
 
     def show_error(self, error: str):
         self.status_message = ""
