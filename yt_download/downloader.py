@@ -67,7 +67,7 @@ class YTDownloader:
             self.download_stats = {'total_bytes': 0, 'downloaded_bytes': 0, 'start_time': 0, 'speed': 0}
             self.progress_callback("Download concluído, processando áudio...")
     
-    def check_system_requirements(self) -> Dict[str, Any]:
+    def check_system_requirements(self, check_network: bool = True) -> Dict[str, Any]:
         """Verifica se todos os requisitos do sistema estão atendidos."""
         self.logger.info("Verificando requisitos do sistema...")
         
@@ -76,16 +76,24 @@ class YTDownloader:
         self.logger.log_system_check("FFmpeg", ffmpeg_check['installed'], 
                                     f"- {ffmpeg_check.get('version', 'N/A')}" if ffmpeg_check['installed'] else f"- {ffmpeg_check['error']}")
         
-        # Verificar conectividade com YouTube
-        youtube_check = NetworkUtils.test_youtube_connectivity()
-        network_ok = youtube_check['all_working']
-        
-        network_details = f"- Status: {youtube_check['overall_status']}"
-        if youtube_check['overall_status'] == 'online':
-            avg_response = sum(r['response_time'] for r in youtube_check['endpoints'].values() if r['response_time']) / len([r for r in youtube_check['endpoints'].values() if r['response_time']])
-            network_details += f" | Latência média: {avg_response:.0f}ms"
-        
-        self.logger.log_system_check("YouTube", network_ok, network_details)
+        if check_network:
+            youtube_check = NetworkUtils.test_youtube_connectivity()
+            network_ok = youtube_check['all_working']
+
+            network_details = f"- Status: {youtube_check['overall_status']}"
+            if youtube_check['overall_status'] == 'online':
+                avg_response = sum(r['response_time'] for r in youtube_check['endpoints'].values() if r['response_time']) / len([r for r in youtube_check['endpoints'].values() if r['response_time']])
+                network_details += f" | Latência média: {avg_response:.0f}ms"
+
+            self.logger.log_system_check("YouTube", network_ok, network_details)
+        else:
+            youtube_check = {
+                'all_working': True,
+                'endpoints': {},
+                'video_access': None,
+                'overall_status': 'skipped'
+            }
+            network_ok = True
         
         return {
             'ffmpeg': ffmpeg_check,
@@ -114,6 +122,7 @@ class YTDownloader:
             'progress_hooks': [self._progress_hook],
             'quiet': True,
             'no_warnings': True,
+            'noprogress': True,
             'retries': self.max_retries,
             'fragment_retries': self.max_retries,
         }

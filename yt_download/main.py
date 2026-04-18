@@ -3,6 +3,7 @@
 import sys
 import argparse
 from rich import print as rprint
+from . import __version__
 from .cli import CLI
 from .config import Config
 from .config_manager import ConfigManager
@@ -46,7 +47,7 @@ Examples:
                        help='Check system requirements')
     parser.add_argument('--update', action='store_true',
                        help='Check for updates and install if available')
-    parser.add_argument('--version', '-v', action='version', version='1.0.1')
+    parser.add_argument('--version', '-v', action='version', version=__version__)
     
     return parser
 
@@ -62,20 +63,13 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
         
         # Verificar requisitos do sistema
         cli.show_progress("Verificando sistema...")
-        system_check = downloader.check_system_requirements()
+        system_check = downloader.check_system_requirements(check_network=False)
         
         if not system_check['all_ok']:
             if not system_check['ffmpeg']['installed']:
                 cli.show_error(f"FFmpeg: {system_check['ffmpeg']['error']}")
                 rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
                 return False
-            if not system_check['network']:
-                youtube_error = system_check['youtube']['endpoints']['https://www.youtube.com'].get('error')
-                rprint("\n[yellow]⚠️  O teste automático de conectividade com o YouTube falhou.[/yellow]")
-                if youtube_error:
-                    rprint(f"[dim]Detalhe: {youtube_error}[/dim]")
-                rprint("[dim]O download continuará e o yt-dlp tentará acessar o link informado.[/dim]")
-        
         # Validar URL
         cli.show_progress("Validando URL...")
         url_info = URLValidator.validate_and_classify(url)

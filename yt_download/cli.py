@@ -3,6 +3,7 @@ from rich.prompt import Prompt, Confirm
 from rich.table import Table
 from rich.panel import Panel
 from rich import print as rprint
+from rich.text import Text
 from typing import Dict, Any, List
 from . import __version__
 
@@ -11,52 +12,85 @@ console = Console()
 class CLI:
     def __init__(self):
         self.console = console
-    
-    def show_welcome(self, config=None):
+        self.current_config = None
+        self.status_message = ""
+        self.status_style = "blue"
+        self.notice_message = ""
+        self.notice_style = "yellow"
+
+    def _build_welcome_text(self, config=None) -> str:
         welcome_text = "[bold blue]🎵 YouTube to MP3 Downloader[/bold blue]\n"
         welcome_text += "[dim]Download YouTube videos and playlists as high-quality MP3 files[/dim]"
         welcome_text += f"\n[dim]Versão {__version__}[/dim]"
-        
+
         if config:
             parallel_status = "🚀 Ativado" if config.get('parallel_downloads', False) else "⚪ Desativado"
             format_info = config.get('audio_format', 'mp3').upper()
             quality_info = config.get('audio_quality', '320')
-            
+
             welcome_text += f"\n\n[bold]Configuração Atual:[/bold]"
             welcome_text += f"\n• Formato: [cyan]{format_info}[/cyan] | Qualidade: [cyan]{quality_info}[/cyan]"
             welcome_text += f"\n• Download Paralelo: {parallel_status}"
-            
+
             if not config.get('parallel_downloads', False):
                 welcome_text += f"\n[yellow]💡 Dica: Ative o download paralelo para playlists mais rápidas[/yellow]"
                 welcome_text += f"\n[dim]   Use: yt-download --config[/dim]"
-        
+
+        return welcome_text
+
+    def render_screen(self, config=None):
+        if config is not None:
+            self.current_config = config
+
+        self.console.clear()
+        welcome_text = self._build_welcome_text(self.current_config)
         self.console.print(Panel(welcome_text, border_style="blue"))
-    
+
+        if self.notice_message:
+            self.console.print(Text(self.notice_message, style=self.notice_style))
+
+        if self.status_message:
+            self.console.print(Text(f"⏳ {self.status_message}", style=self.status_style))
+
+    def show_welcome(self, config=None):
+        self.status_message = ""
+        self.notice_message = ""
+        self.render_screen(config)
+
     def get_url_input(self) -> str:
+        self.status_message = ""
+        self.notice_message = ""
+        self.render_screen()
         return Prompt.ask("\n[yellow]📎 Cole o link do YouTube[/yellow]")
-    
+
     def show_url_info(self, info: Dict[str, Any]):
         if info['is_playlist']:
-            rprint(f"\n[green]✅ Playlist detectada![/green]")
+            self.notice_message = "✅ Playlist detectada!"
         else:
-            rprint(f"\n[green]✅ Vídeo único detectado![/green]")
-    
+            self.notice_message = "✅ Vídeo único detectado!"
+        self.notice_style = "green"
+        self.render_screen()
+
     def get_mode_choice(self, config=None) -> str:
+        self.status_message = ""
+        self.render_screen(config)
         rprint("\n[bold]Escolha o modo de download:[/bold]")
-        
+
         if config:
             format_info = config.get('audio_format', 'mp3').upper()
             quality_info = config.get('audio_quality', '320')
             rprint(f"[cyan]1.[/cyan] Automático ({format_info}, {quality_info})")
         else:
             rprint("[cyan]1.[/cyan] Automático (MP3, melhor qualidade)")
-            
+
         rprint("[cyan]2.[/cyan] Manual (escolher formato e qualidade)")
-        
+
         choice = Prompt.ask("Escolha", choices=["1", "2"], default="1")
         return "auto" if choice == "1" else "manual"
-    
+
     def get_format_choice(self) -> str:
+        self.status_message = ""
+        self.render_screen()
         rprint("\n[bold]Formatos disponíveis:[/bold]")
         formats = {
             "1": ("mp3", "MP3 (recomendado)"),
@@ -64,16 +98,18 @@ class CLI:
             "3": ("ogg", "OGG Vorbis"),
             "4": ("wav", "WAV (sem compressão)")
         }
-        
+
         for key, (_, desc) in formats.items():
             rprint(f"[cyan]{key}.[/cyan] {desc}")
-        
+
         choice = Prompt.ask("Escolha o formato", choices=list(formats.keys()), default="1")
         return formats[choice][0]
-    
+
     def get_quality_choice(self, format_type: str) -> str:
+        self.status_message = ""
+        self.render_screen()
         rprint(f"\n[bold]Qualidades disponíveis para {format_type.upper()}:[/bold]")
-        
+
         if format_type == "mp3":
             qualities = {
                 "1": ("320", "320 kbps (melhor qualidade)"),
@@ -86,29 +122,42 @@ class CLI:
                 "1": ("best", "Melhor qualidade disponível"),
                 "2": ("worst", "Menor qualidade/tamanho")
             }
-        
+
         for key, (_, desc) in qualities.items():
             rprint(f"[cyan]{key}.[/cyan] {desc}")
-        
+
         choice = Prompt.ask("Escolha a qualidade", choices=list(qualities.keys()), default="1")
         return qualities[choice][0]
-    
+
     def show_download_start(self, mode: str, format_type: str, quality: str):
-        info = f"Modo: {mode.title()} | Formato: {format_type.upper()} | Qualidade: {quality}"
-        rprint(f"\n[green]🚀 Iniciando download...[/green]")
-        rprint(f"[dim]{info}[/dim]")
-    
+        self.notice_message = f"🚀 Iniciando download | Modo: {mode.title()} | Formato: {format_type.upper()} | Qualidade: {quality}"
+        self.notice_style = "green"
+        self.render_screen()
+
     def show_progress(self, message: str):
-        rprint(f"[blue]⏳ {message}[/blue]")
-    
+        self.status_message = message
+        self.status_style = "blue"
+        self.render_screen()
+
+    def show_warning(self, message: str):
+        self.notice_message = f"⚠️  {message}"
+        self.notice_style = "yellow"
+        self.render_screen()
+
     def show_success(self, title: str, filename: str):
+        self.status_message = ""
+        self.notice_message = ""
+        self.render_screen()
         rprint(f"\n[green]✅ Download concluído![/green]")
         rprint(f"[bold]Título:[/bold] {title}")
         rprint(f"[bold]Arquivo:[/bold] {filename}")
-    
+
     def show_error(self, error: str):
+        self.status_message = ""
+        self.notice_message = ""
+        self.render_screen()
         rprint(f"\n[red]❌ Erro: {error}[/red]")
-    
+
     def show_history(self, history_entries: List[Dict[str, Any]]):
         if not history_entries:
             rprint("\n[yellow]📝 Nenhum download no histórico[/yellow]")
@@ -153,6 +202,6 @@ class CLI:
     
     def show_reset_success(self):
         rprint("\n[green]✅ Histórico apagado com sucesso![/green]")
-    
+
     def confirm_continue(self) -> bool:
         return Confirm.ask("\n[yellow]Fazer outro download?[/yellow]")
