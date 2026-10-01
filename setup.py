@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="yt-download",
-    version="1.2.4",
+    version="1.2.5",
     author="David Oliveira",
     author_email="olivr.david@gmail.com",
     description="A simple CLI tool to download YouTube videos and playlists in multiple audio formats",
@@ -17,7 +17,7 @@ setup(
         "colorama>=0.4.6",
         "rich>=13.0.0",
         "requests>=2.28.0",
-        "urllib3<2",
+        "urllib3>=2.0.2,<3",
     ],
     entry_points={
         "console_scripts": [
