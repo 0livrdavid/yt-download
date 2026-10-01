@@ -4,6 +4,7 @@ import time
 import concurrent.futures
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable, List
+from .engine import EngineManager, runtime_options, compatibility_hint
 from .history import DownloadHistory
 from .config import resolve_download_directory
 from .utils import SystemValidator, FileUtils, NetworkUtils
@@ -27,6 +28,13 @@ class YTDownloader:
             'start_time': 0,
             'speed': 0
         }
+
+    def _get_youtube_extractor_opts(self) -> Dict[str, Any]:
+        """Options needed by recent yt-dlp versions for YouTube JS challenges."""
+        options = runtime_options()
+        # Preservar o fallback existente para instalações sem o pacote EJS.
+        options['remote_components'] = ['ejs:github']
+        return options
     
     def _progress_hook(self, d):
         if not self.progress_callback:
@@ -78,6 +86,10 @@ class YTDownloader:
         self.logger.log_system_check("FFmpeg", ffmpeg_check['installed'], 
                                     f"- {ffmpeg_check.get('version', 'N/A')}" if ffmpeg_check['installed'] else f"- {ffmpeg_check['error']}")
         
+        engine_check = EngineManager().diagnostics()
+        for warning in engine_check['warnings']:
+            self.logger.warning(warning)
+
         if check_network:
             youtube_check = NetworkUtils.test_youtube_connectivity()
             network_ok = youtube_check['all_working']
@@ -98,10 +110,11 @@ class YTDownloader:
             network_ok = True
         
         return {
+            'engine': engine_check,
             'ffmpeg': ffmpeg_check,
             'network': network_ok,
             'youtube': youtube_check,
-            'all_ok': ffmpeg_check['installed'] and network_ok
+            'all_ok': ffmpeg_check['installed'] and network_ok and engine_check['ready']
         }
     
     def _get_ydl_opts(self, format_type: str, quality: str, is_playlist: bool = False, playlist_title: str = None) -> Dict[str, Any]:
@@ -123,11 +136,12 @@ class YTDownloader:
             'outtmpl': output_template,
             'progress_hooks': [self._progress_hook],
             'quiet': True,
-            'no_warnings': True,
+            'no_warnings': False,
             'noprogress': True,
             'retries': self.max_retries,
             'fragment_retries': self.max_retries,
         }
+        ydl_opts.update(self._get_youtube_extractor_opts())
         
         # Adicionar thumbnail como capa embutida se configurado
         if self.config.get('download_thumbnails', False):
@@ -196,6 +210,10 @@ class YTDownloader:
                 
             except Exception as e:
                 last_error = e
+                hint = compatibility_hint(e)
+                if hint:
+                    self.logger.warning(hint)
+                    raise
                 self.logger.warning(f"Falha na tentativa {attempt + 1}: {str(e)}")
                 
                 if attempt < max_retries:
@@ -276,9 +294,10 @@ class YTDownloader:
     def get_video_info(self, url: str) -> Dict[str, Any]:
         ydl_opts = {
             'quiet': True,
-            'no_warnings': True,
+            'no_warnings': False,
             'extract_flat': False,
         }
+        ydl_opts.update(self._get_youtube_extractor_opts())
         
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -308,7 +327,8 @@ class YTDownloader:
                 is_playlist: bool = False) -> Dict[str, Any]:
         try:
             # Primeiro extrair informações para obter o título da playlist
-            temp_ydl_opts = {'quiet': True, 'no_warnings': True, 'extract_flat': False}
+            temp_ydl_opts = {'quiet': True, 'no_warnings': False, 'extract_flat': False}
+            temp_ydl_opts.update(self._get_youtube_extractor_opts())
             with yt_dlp.YoutubeDL(temp_ydl_opts) as temp_ydl:
                 info = temp_ydl.extract_info(url, download=False)
             

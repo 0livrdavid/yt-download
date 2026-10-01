@@ -10,6 +10,7 @@ from .config_manager import ConfigManager
 from .url_validator import URLValidator
 from .downloader import YTDownloader
 from .updater import GitHubUpdater
+from .engine import EngineManager, compatibility_hint
 
 INTERACTIVE_COMMANDS = [
     "/ ou /help  Mostrar comandos",
@@ -17,7 +18,8 @@ INTERACTIVE_COMMANDS = [
     "/history    Mostrar histórico",
     "/stats      Mostrar estatísticas",
     "/check      Verificar sistema",
-    "/update     Buscar atualização",
+    "/update     Buscar atualização do aplicativo",
+    "/update-engine Atualizar motor YouTube (yt-dlp/EJS)",
     "/reset      Limpar histórico",
     "/quit       Sair",
 ]
@@ -58,6 +60,8 @@ Examples:
                        help='Check system requirements')
     parser.add_argument('--update', action='store_true',
                        help='Check for updates and install if available')
+    parser.add_argument('--update-engine', action='store_true',
+                       help='Update yt-dlp and EJS with confirmation')
     parser.add_argument('--version', '-v', action='version', version=__version__)
     
     return parser
@@ -81,6 +85,9 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
                 cli.show_error(f"FFmpeg: {system_check['ffmpeg']['error']}")
                 rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
                 return False
+        if not system_check['engine']['ready']:
+            cli.show_error('Motor YouTube incompleto. Resolva os avisos acima antes de baixar.')
+            return False
         # Validar URL
         cli.show_progress("Validando URL...")
         url_info = URLValidator.validate_and_classify(url)
@@ -136,6 +143,9 @@ def handle_download(cli, config, url, format_type=None, quality=None, auto_mode=
         return False
     except Exception as e:
         cli.show_error(str(e))
+        hint = compatibility_hint(e)
+        if hint:
+            cli.show_warning(hint)
         return False
 
 def interactive_mode():
@@ -228,11 +238,17 @@ def handle_interactive_command(cli, config, command: str) -> bool:
             rprint(f"[red]❌ FFmpeg: {system_check['ffmpeg']['error']}[/red]")
             rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
 
+        rprint(f"Motor: yt-dlp {system_check['engine']['version']} | EJS: {system_check['engine']['ejs_version'] or 'ausente'} | Runtime: {system_check['engine']['runtime'] or 'ausente'}")
         youtube_info = system_check['youtube']
         if youtube_info['all_working']:
             rprint(f"[green]✅ YouTube: {youtube_info['overall_status'].title()}[/green]")
         else:
             rprint(f"[red]❌ YouTube: {youtube_info['overall_status'].title()}[/red]")
+        cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
+        return False
+
+    if normalized == "/update-engine":
+        EngineManager().interactive_update()
         cli.console.input("\n[dim]Pressione Enter para voltar[/dim]")
         return False
 
@@ -307,6 +323,7 @@ def main():
                 rprint(f"[yellow]💡 {system_check['ffmpeg']['suggestion']}[/yellow]")
             
             # YouTube
+            rprint(f"Motor: yt-dlp {system_check['engine']['version']} | EJS: {system_check['engine']['ejs_version'] or 'ausente'} | Runtime: {system_check['engine']['runtime'] or 'ausente'}")
             youtube_info = system_check['youtube']
             if youtube_info['all_working']:
                 rprint(f"[green]✅ YouTube: {youtube_info['overall_status'].title()}[/green]")
@@ -331,6 +348,10 @@ def main():
             
             return
         
+        if args.update_engine:
+            success = EngineManager().interactive_update()
+            sys.exit(0 if success else 1)
+
         # Update
         if args.update:
             updater = GitHubUpdater()

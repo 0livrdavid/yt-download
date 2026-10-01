@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yt-download"
-version = "1.2.3"
+version = "1.2.4"
 authors = [
     {name = "David Oliveira", email = "olivr.david@gmail.com"},
 ]
@@ -24,7 +24,7 @@ classifiers = [
 ]
 keywords = ["youtube", "downloader", "mp3", "audio", "cli", "playlist"]
 dependencies = [
-    "yt-dlp>=2023.1.6",
+    "yt-dlp[default]>=2026.3.17",
     "colorama>=0.4.6",
     "rich>=13.0.0",
     "requests>=2.28.0",

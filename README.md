@@ -523,3 +523,21 @@ Esta ferramenta é destinada apenas para uso pessoal e educacional. Respeite os 
 ---
 
 ⭐ Se este projeto te ajudou, considera dar uma estrela no GitHub!
+
+### Compatibilidade com o YouTube
+
+O motor requer Node.js 22+ ou Deno 2.3+ disponível no PATH e o pacote
+`yt-dlp-ejs`, incluído na dependência `yt-dlp[default]`. Antes de baixar,
+o aplicativo verifica esses componentes e consulta atualizações do motor
+no máximo uma vez por dia. Falhas nessa consulta não impedem downloads.
+
+Use `/update-engine` no modo interativo ou `yt-download --update-engine`
+para atualizar o motor e suas dependências pelo pip do mesmo Python.
+A instalação exige confirmação e não instala Node/Deno. Após atualizar,
+encerre e abra novamente o aplicativo. `/update` continua atualizando o
+aplicativo a partir do GitHub.
+
+`yt-download --check` mostra as versões e o runtime encontrado. Avisos do
+YouTube ficam visíveis; erros 403 ou de desafios JavaScript recebem orientação
+específica. Nem todo 403 é causado por versão: restrições de acesso e bloqueios
+temporários podem continuar exigindo diagnóstico.
